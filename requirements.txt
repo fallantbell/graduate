@@ -1,0 +1,39 @@
+tqdm
+rich
+ninja
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+opencv-python
+imageio
+imageio-ffmpeg
+einops
+pillow
+
+torch
+torch-ema
+torchmetrics
+einops
+tensorboard
+tensorboardX
+
+# for stable-diffusion
+huggingface_hub
+diffusers == 0.18.2
+accelerate
+transformers
+
+# for dmtet and mesh export
+xatlas
+trimesh
+PyMCubes
+pymeshlab
+git+https://github.com/NVlabs/nvdiffrast/
+
+# for omnidata
+gdown
+
+# for dpt
+timm

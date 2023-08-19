@@ -576,7 +576,7 @@ python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 - 固定 ratio 後的 shading & albedo
 - 只計算SDS前景loss
 
-CUDA_VISIBLE_DEVICES=7 \
+CUDA_VISIBLE_DEVICES=4 \
 python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 --latent_iter_ratio 0.2 --radius_range 2 3 \
 --theta_range 30 105 --iters 20000 --lambda_depth 1 \
