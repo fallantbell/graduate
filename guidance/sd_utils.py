@@ -1,5 +1,5 @@
 # import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "9"
 
 from transformers import CLIPTextModel, CLIPTokenizer, logging
 from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler, DDIMScheduler, StableDiffusionPipeline
@@ -233,11 +233,11 @@ class StableDiffusion(nn.Module):
         return loss
 
     @torch.no_grad()
-    def produce_latents(self, text_embeddings, height=512, width=512, num_inference_steps=50, guidance_scale=7.5, latents=None):
+    def produce_latents(self, text_embeddings, height=512, width=512, num_inference_steps=50, guidance_scale=7.5, latents=None,bev=""):
 
         #! 處理 depth map
-        depth_img = Image.open("test/render_disparity_tree/render_disparity_13.png")
-        depth_img.save(f"test/depth_SD/init_depth_tree.png")
+        depth_img = Image.open(f"terrain_render/{bev}/disparity/0.png")
+        depth_img.save(f"sd_sample/{bev}/depth_cond.png")
         depth_map = torch.tensor(np.array(depth_img)).to(text_embeddings.dtype)
         depth_map = rearrange(depth_map,'H W -> 1 1 H W')
         depth_map = F.interpolate(
@@ -295,7 +295,7 @@ class StableDiffusion(nn.Module):
 
         return latents
 
-    def prompt_to_img(self, prompts, negative_prompts='', height=512, width=512, num_inference_steps=50, guidance_scale=7.5, latents=None):
+    def prompt_to_img(self, prompts, negative_prompts='', height=512, width=512, num_inference_steps=50, guidance_scale=7.5, latents=None, bev=""):
 
         if isinstance(prompts, str):
             prompts = [prompts]
@@ -309,7 +309,13 @@ class StableDiffusion(nn.Module):
         text_embeds = torch.cat([neg_embeds, pos_embeds], dim=0) # [2, 77, 768]
 
         # Text embeds -> img latents
-        latents = self.produce_latents(text_embeds, height=height, width=width, latents=latents, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale) # [1, 4, 64, 64]
+        latents = self.produce_latents(
+            text_embeds, height=height, 
+            width=width, latents=latents, 
+            num_inference_steps=num_inference_steps, 
+            guidance_scale=guidance_scale,
+            bev=bev
+        ) # [1, 4, 64, 64]
 
         # Img latents -> imgs
         imgs = self.decode_latents(latents) # [1, 3, 512, 512]
@@ -323,7 +329,17 @@ class StableDiffusion(nn.Module):
 
 if __name__ == '__main__':
 
+    '''
+
+    CUDA_VISIBLE_DEVICES=4 \
+    python guidance/sd_utils.py \
+    --prompt "a landscape,hdr,masterpiece,64k" \
+    --bev heightmap
+        
+    '''
+
     import argparse
+    import os
     import matplotlib.pyplot as plt
 
     parser = argparse.ArgumentParser()
@@ -337,19 +353,22 @@ if __name__ == '__main__':
     parser.add_argument('-W', type=int, default=512)
     parser.add_argument('--seed', type=int, default=1210)
     parser.add_argument('--steps', type=int, default=50)
+    parser.add_argument('--bev', type=str,default="simple")
     opt = parser.parse_args()
 
     seed_everything(opt.seed)
 
     device = torch.device('cuda')
 
+    os.makedirs(f"sd_sample/{opt.bev}", exist_ok=True)
+
     sd = StableDiffusion(device, opt.fp16, opt.vram_O, opt.sd_version, opt.hf_key)
 
-    imgs = sd.prompt_to_img(opt.prompt, opt.negative, opt.H, opt.W, opt.steps)
+    imgs = sd.prompt_to_img(opt.prompt, opt.negative, opt.H, opt.W, opt.steps, bev=opt.bev)
 
     # visualize image
     plt.imshow(imgs[0])
-    plt.imsave(f"test/depth_SD/predict_img_tree.png",imgs[0])
+    plt.imsave(f"sd_sample/{opt.bev}/sample_img.png",imgs[0])
 
 
 
