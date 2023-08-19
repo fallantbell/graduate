@@ -93,7 +93,7 @@
             "program": "guidance/sd_utils.py",
             "args": [
                 "--prompt",
-                "a tree",
+                "a landscape,hdr,masterpiece,64k",
             ],
             "console": "integratedTerminal",
             "justMyCode": true

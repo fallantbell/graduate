@@ -498,6 +498,9 @@ class Trainer(object):
 
             loss = loss + depth_loss*self.opt.lambda_depth
 
+            # image_gt = self.guidance['SD'].init_image
+            # image_gt = np.array(image_gt)
+            # image_gt = rearrange(image_gt,"H W C -> C H W")
             pred_rgb3 = pred_rgb[:,:3,...]
             image_gt_tensor = torch.tensor(image_gt).to(torch.float32).to(self.device)
             image_gt_tensor = rearrange(image_gt_tensor,'C H W -> 1 C H W')
@@ -507,11 +510,14 @@ class Trainer(object):
                 rgb_loss = 0
 
             # loss = loss + rgb_loss
+
+            # non_zero_mask = (depth_gt != 0)
+            non_zero_mask = self.guidance['SD'].non_zero_mask
             
             if self.use_tensorboardX:
-                self.writer.add_scalar("train/loss_noise_mse", self.guidance['SD'].noise_mse, self.global_step)
+                # self.writer.add_scalar("train/loss_noise_mse", self.guidance['SD'].noise_mse, self.global_step)
                 self.writer.add_scalar("train/loss_depth_mse", depth_loss, self.global_step)
-                # self.writer.add_scalar("train/loss_rgb_mse", rgb_loss, self.global_step)
+                self.writer.add_scalar("train/loss_rgb_mse", rgb_loss, self.global_step)
         
         if self.opt.without_SDS:
             pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()
@@ -565,7 +571,7 @@ class Trainer(object):
             #     self.writer.add_scalar("train/loss_orient", self.opt.lambda_orient * loss_orient, self.global_step)
             #     self.writer.add_scalar("train/loss_opacity", self.opt.lambda_opacity * loss_opacity, self.global_step)
                 
-        return pred_rgb, pred_depth, depth_gt_tensor,loss, image_gt_tensor, self.guidance['SD'].non_zero_mask
+        return pred_rgb, pred_depth, depth_gt_tensor,loss, image_gt_tensor, non_zero_mask
 
     def post_train_step(self):
 
@@ -982,8 +988,8 @@ class Trainer(object):
             image_gt = (image_gt * 255).astype(np.uint8)
 
             grad_map = rearrange(grad_map, "H W -> 1 H W")
-            grad_map = grad_map.astype(np.uint8)
-            grad_map = (grad_map - grad_map.min()) / (grad_map.max() - grad_map.min() + 1e6)
+            # grad_map = grad_map.astype(np.uint8)
+            # grad_map = (grad_map - grad_map.min()) / (grad_map.max() - grad_map.min() + 1e6)
             grad_map = (grad_map * 255).astype(np.uint8)
 
             self.writer.add_image("render_image",pred_rgbs,self.global_step)

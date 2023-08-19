@@ -4,6 +4,8 @@ cub-1.10.0/
 __pycache__/
 
 data/
+terrain_render/
+sd_sample/
 
 trial/
 test/
