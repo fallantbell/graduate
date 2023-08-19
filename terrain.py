@@ -136,12 +136,21 @@ class Terrain:
 
 if __name__ == '__main__':
     import argparse
+    import os
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--heightmap_path', type=str,default='BEV/heightmap.png')
+    parser.add_argument('--bev', type=str,default='simple')
+    parser.add_argument('--heightmap_path', type=str,default='')
     opt = parser.parse_args()
 
+    opt.heightmap_path = f"BEV/{opt.bev}.png"
     terrain = Terrain(opt)
+
+    disparity_path = f"terrain_render/{opt.bev}/disparity"
+    rgb_path = f"terrain_render/{opt.bev}/rgb"
+
+    os.makedirs(disparity_path, exist_ok=True)
+    os.makedirs(rgb_path, exist_ok=True)
 
     size = 20
     device = 'cuda'
@@ -154,29 +163,12 @@ if __name__ == '__main__':
         thetas = torch.FloatTensor([90-tilt]).to(device)
         phis = torch.FloatTensor([(i/size)*360]).to(device)
         radius = torch.FloatTensor([2.2]).to(device)
-        # poses, dirs = circle_poses(device, radius=radius, theta=thetas, phi=phis, return_dirs=False)
-
-        # R = poses[:,:3,:3]
-        # T = poses[:,:3,3]
 
         if phis>180:
             phis = -(360-phis)
 
         R2, T2 = look_at_view_transform(dist=2.2, elev=0+tilt, azim=phis)
 
-        # print(f"i={i}")
-        # print(R)
-        # print(R2)
-        # print("")
-
-        '''
-            +x 往右
-            +y 往下
-            +z 往後
-        '''
-
-        # T[:,2] = T[:,2] + 2
-        # T[:,1] = T[:,1] - (size/2)*0.4 + i*0.4
         camera = FoVPerspectiveCameras(R=R2, T=T2, device='cuda')
 
 
@@ -185,15 +177,15 @@ if __name__ == '__main__':
         image, depth, mask, _, _ = terrain.render_from_camera(camera, H, W)
 
         #* 配合midas 將深度inverse，除了0(背景以外)都做 1/depth
-        # non_zero_mask = (depth != 0)
-        # depth[non_zero_mask] = 1.0 / depth[non_zero_mask]
+        non_zero_mask = (depth != 0)
+        depth[non_zero_mask] = 1.0 / depth[non_zero_mask]
 
         # 只保留RGB顏色通道並轉換形狀
         image_np = image[:3,...].cpu().numpy()
         image_np = image_np.transpose(1, 2, 0)
 
-        # plt.imshow(image_np)
-        # plt.imsave(f"test/render_rgb/render_image_{i}.png",image_np)
+        plt.imshow(image_np)
+        plt.imsave(f"{rgb_path}/{i}.png",image_np)
 
         # 儲存深度圖像
         depth_np = depth.cpu().numpy()
@@ -202,7 +194,7 @@ if __name__ == '__main__':
         depth_np = (depth_np * 255).astype(np.uint8)
         all_depth.append(depth_np)
         depth_image = Image.fromarray(depth_np, mode='L')
-        depth_image.save(f"test/render_depth_tree/render_depth_{i}.png")
+        depth_image.save(f"{disparity_path}/{i}.png")
     
     all_depth = np.stack(all_depth, axis=0)
-    imageio.mimwrite(f'test/render_depth_tree/render_depth.mp4', all_depth, fps=10, quality=8, macro_block_size=1)
+    imageio.mimwrite(f"{disparity_path}/video.mp4", all_depth, fps=10, quality=8, macro_block_size=1)
