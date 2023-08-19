@@ -1,0 +1,592 @@
+測試1: 查看背景的文字敘述影響會不會很大
+因為它相機是會從上往下看的，這樣就看不到背景，加上背景文字敘述可能更難訓練
+它原本就有背景的network,不知道會不會互相影響
+
+森林
+python main.py --text "forest" --workspace trial_forest -O
+
+森林, 藍天
+python main.py --text "blue sky, forest" --workspace trial_forest_bluesky -O
+
+" ===================================================================================== "
+
+測試2: 查看能不能只根據一個圖像跟固定的相機訓練nerf, 使用跟原照片做 mse loss, 就不使用sds
+
+python main.py --text "cyberpunk,view from the front,hdr,masterpiece,64k" --workspace trial_cyperpunk_MSE -O --for_test --without_SDS
+
+python main.py --text "cyberpunk,view from the front,hdr,masterpiece,64k" --workspace trial_cyperpunk_SDS -O --for_test 
+
+# MSE 無法收斂
+# SDS 效果不好，沒有細節
+
+" ===================================================================================== "
+
+測試3: 查看bound 的影響
+原本mse loss 下降到一定程度就會開始震盪
+看看是不是bound 太小沒有覆蓋到整個場景的緣故
+
+python main.py --text "cyberpunk,view from the front,hdr,masterpiece,64k" --workspace trial_cyperpunk_MSE_bound4 -O --for_test --without_SDS --bound 4
+
+# 發現不是，是在超過20% 個iter 後，它network 對color的處理會不太一樣
+# 不過發現 bound 變大速度會有感覺的變慢
+
+" ===================================================================================== "
+
+測試4: 讓color 從頭到尾都等於 albedo
+python main.py --text "cyberpunk,view from the front,hdr,masterpiece,64k" --workspace trial_cyperpunk_MSE_only_albedo -O --for_test --without_SDS
+
+# loss 的確沒有突然上升
+# 不過可以明顯發現，沒有深度圖完全沒學到東西
+# 而原本的作法是先學習深度資訊，然後再學texture，所以loss 突然上升滿合理的
+
+" ===================================================================================== "
+
+測試5: 測試看看自然場景
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" --workspace trial_landscape_MSE -O --for_test --without_SDS
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" --workspace trial_landscape_SDS -O --for_test 
+
+# 一樣爛
+
+" ===================================================================================== "
+
+測試6: 測試看看小物體效果會不會比較好
+
+python main.py --text "a cute rabbit,view from the front,hdr,masterpiece,64k" --workspace trial_rabbit_SDS -O --for_test 
+
+python main.py --text "a cute rabbit,view from the front,hdr,masterpiece,64k" --workspace trial_rabbit_MSE -O --for_test --without_SDS
+
+# 看起來沒差
+
+" ===================================================================================== "
+
+測試7: 測試更長的latent 會不會有助於幾何的學習並提升最後的效果
+
+python main.py --text "a cute rabbit,view from the front,hdr,masterpiece,64k" \
+--workspace trial_rabbit_MSE_longer_latent -O \
+--for_test --without_SDS --latent_iter_ratio 0.4
+
+" ===================================================================================== "
+
+感覺因為地形複雜, depth_loss 可能要大一點
+
+iter: 10000 -> 20000
+depth 權重: 0.2 -> 1
+
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_nature_heightmap_strongdepthguidance -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 20000 --lambda_depth 1
+
+" ===================================================================================== "
+
+調整 scheduler 步數, 好像有看到別人說調大比較好
+
+t_range min: 0.02 -> 0.1
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_nature_heightmap_strongdepthguidance_upschedule -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --t_range 0.1 0.98 --iters 20000 --lambda_depth 1
+
+" ===================================================================================== "
+
+一個相機角度多訓練幾次 ?
+
+每個相機重複訓練10次才換下個 # 否決，太久了
+
+增加訓練時render大小
+w: 64 -> 128
+h: 64 -> 128
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_nature_heightmap_moretraincam_bigrender -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --t_range 0.1 0.98 --iters 50000 --lambda_depth 1 \
+--w 128 --h 128
+
+" ===================================================================================== "
+
+guidance 調小? 因為原本depth 就有constraint 了,或許不需要這麼大個guidance
+height map 太複雜? 先用簡單的height map 來做
+
+height_map -> simple
+guidance 100 -> 7.5
+
+# 實驗組
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_simple_low_guidance -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --t_range 0.1 0.98 --iters 10000 --lambda_depth 1 \
+--guidance_scale 7.5
+
+# 對照組
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_simple_high_guidance -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --t_range 0.1 0.98 --iters 10000 --lambda_depth 1 
+
+" ===================================================================================== "
+
+回到原本只訓練一個角度的相機
+schedule 也調回預設
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_simple_onecam -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 \
+--for_test
+
+" ===================================================================================== "
+
+可能是ngp 2個feature 太少了
+
+leveldim 2-> 4
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_simple_more_level -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 
+
+" ===================================================================================== "
+
+前期只訓練depth, 看看形狀訓練好之後再加texture 會不會比較好
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_simple_depthbegin -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 
+
+" ===================================================================================== "
+
+前期只訓練depth, 看看形狀訓練好之後再加texture 會不會比較好
+
+拉長前期 0.2 -> 0.4
+iter 增加 10000 -> 30000
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial_simple_depthbegin_longer -O \
+--latent_iter_ratio 0.4 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 30000 --lambda_depth 1 
+
+" ===================================================================================== "
+
+更改 lookat 矩陣
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial/trial_simple -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 
+
+" ===================================================================================== "
+
+random lookat 看向的 target
+
+python main.py --text "a landscape,view from the front,hdr,masterpiece,64k" \
+--workspace trial/trial_simple_randtarget -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 
+
+
+" ===================================================================================== "
+
+測試訓練模糊是不是跟random fov 有關
+
+python examples/train_mlp_nerf.py --scene lego \
+--data_root data/nerf_synthetic \
+--fovy_range 20 20 \
+--workspace fixed_fov 
+
+
+#            讚讚!! 不使用random fov 就可以正常訓練            #
+
+" ===================================================================================== "
+
+固定fov
+取消視角(前、後、兩側)方向描述, 增加bev 視角描述
+這裡先沒做SDS, 而是 MSE + depth loss先驗證ngp 能不能訓練起來
+
+簡單場景
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.1 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 \
+--workspace trial/trial_simple_fixedFOV_mse
+
+" ===================================================================================== "
+
+固定fov 
+看只train depth loss 能不能train 好geometry
+
+簡單場景
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.1 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 \
+--workspace trial/trial_simple_fixedFOV_depthonly
+
+複雜場景
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.1 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/heightmap.png \
+--workspace trial/trial_complex_fixedFOV_depthonly
+
+=> tensorboard 出來的depth 看起來正常, 但是validation 出來很奇怪
+
+#   發現是因為training 時使用固定radius，然後跟testing 的radius不同          #
+
+" ===================================================================================== "
+
+固定fov + depth loss + sds
+
+複雜場景
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 1.5 2.5 \
+--theta_range 60 75 --iters 30000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/heightmap.png \
+--workspace trial/trial_complex_fixedFOV_sds
+
+=> train不起來
+
+" ===================================================================================== "
+
+簡單場景 mse
+- 固定 radius 2
+- 固定 fov 20
+- 固定 相機視角
+- mse + depth loss
+
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 2 \
+--theta_range 60 75 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--workspace trial/trial_simple_fixedFOV_mse
+
+=> 發現只有在training 中的那幾個視角是清楚的, 其他視角會很多雜訊, 可能要改random 視角
+
+" ===================================================================================== "
+
+簡單場景 mse
+- 固定 radius 2
+- 固定 fov 20
+- random 相機視角
+- mse + depth loss
+
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 2 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 \
+--workspace trial/trial_simple_fixedFOV_randcam_mse
+
+=> 大致結構有出來, 但是會有一些霧狀結構
+
+" ===================================================================================== "
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- random 相機視角
+- mse + depth loss
+
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 \
+--workspace trial/trial_simple_fixedFOV_randcam_randradius_mse
+
+=> 一樣是大致結構有出來, 但是會有一些霧狀結構, 感覺好像比固定radius 好一點
+
+" ===================================================================================== "
+
+試試看opacity loss 能不能去除霧狀結構
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- random 相機視角
+- mse + depth loss
+- opacity loss
+
+CUDA_VISIBLE_DEVICES=7 \ 
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_opacity_randcam_randradius_mse
+
+" ===================================================================================== "
+
+解決模糊問題 => 嘗試固定相機
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- 固定 相機視角
+- mse + depth loss
+- opacity loss
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_fixcam
+
+
+CUDA_VISIBLE_DEVICES=3 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_fixcam_mseonly
+
+" ------------------------ "
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- 固定 相機視角
+- mse 
+- opacity loss
+- 固定 training shading 為 albedo
+- 固定 黑色背景
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_fixcam_albedoonly_mseonly
+
+=> 深度的部分train 不起來, 中間會有一部分結構很奇怪
+
+" ------------------------ "
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- 固定 相機視角
+- mse + depth loss
+- opacity loss
+- 固定 training shading 為 albedo
+- 固定 黑色背景
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_fixcam_albedoonly
+
+=> 一樣是只在訓練視角是清楚的, 在testing 視角就會有雜訊
+
+" ------------------------ "
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- 固定 相機視角
+- mse + depth loss
+- opacity loss
+- 固定 training shading 為 albedo
+- 固定 黑色背景
+- 增加 training data -> 200
+
+CUDA_VISIBLE_DEVICES=3 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 10000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--dataset_size_train 200 \
+--workspace trial/trial_simple_fixcam200_albedoonly
+
+=> 大同小異
+
+" ------------------------ "
+
+結論: 可能跟固定相機沒關
+
+" ===================================================================================== "
+
+實驗看看latent ratio 後到底是不是shading的影響, 還是bg 的影響
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 20
+- random 相機視角
+- mse + depth loss
+- opacity loss
+- 固定 黑色背景
+- 固定 ratio 後的 shading & albedo
+
+CUDA_VISIBLE_DEVICES=2 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_randcam_randradius_fixshade_mse
+
+- 增加 default radius 2.5
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--default_radius \
+--workspace trial/trial_simple_randcam_randradius_fixshade_mse
+
+在其他條件不變的情況下, 比較fix cam 跟 rand cam
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 20 20 --heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_fixcam_fixshade_mse
+
+
+" ===================================================================================== "
+
+實驗看看模糊是不是因為dreamfusion 本身造成的
+
+CUDA_VISIBLE_DEVICES=4 \
+python examples/train_mlp_nerf.py --scene lego \
+--data_root data/nerf_synthetic \
+--fovy_range 20 20 --radius_range 2 3 \
+--theta_range 30 90 \
+--workspace fixed_fov_randcam \
+--model_path examples/trial/fixed_fov_randcam/ckpt/mlp_nerf_2500
+
+=> vanilla 的確比較不模糊, 可能是ngp 或dreamfusion 程式哪裡有問題
+
+" ===================================================================================== "
+
+發現pytorch3D camera default 的 FOV 是 60
+但是 dreamfusion default 則是 20
+=> fov 改 60 試試看
+
+簡單場景 mse
+- random radius [2,3]
+- 固定 fov 60
+- random 相機視角
+- mse + depth loss
+- opacity loss
+- 固定 黑色背景
+- 固定 ratio 後的 shading & albedo
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_randcam_randradius_fixshade_fov60_mse
+
+- 固定 相機視角
+
+CUDA_VISIBLE_DEVICES=0 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--fixed_camera \
+--workspace trial/trial_simple_fixcam_fixshade_fov60_mse
+
+#  真的是這個問題 simple + mse 解決 !!!  #
+
+" ===================================================================================== "
+
+嘗試使用 SDS loss 
+
+簡單場景 
+- random radius [2,3]
+- 固定 fov 60
+- random 相機視角
+- SDS + depth loss
+- opacity loss
+- 固定 黑色背景
+- 固定 ratio 後的 shading & albedo
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_randcam_randradius_fixshade_fov60_sds
+
+
+" ===================================================================================== "
+
+因為 SD 產生的背景我應該不太在意
+所以可以試試根據 depth map , 得到前景的mask
+並根據mask 只計算前景loss
+
+簡單場景 
+- random radius [2,3]
+- 固定 fov 60
+- random 相機視角
+- SDS + depth loss
+- opacity loss
+- 固定 黑色背景
+- 固定 ratio 後的 shading & albedo
+- 只計算SDS前景loss
+
+CUDA_VISIBLE_DEVICES=3 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_simple_fixshade_fgloss_sds
+
+" ===================================================================================== "
+
+目前使用SDS train 不起來
+先嘗試看看固定一個相機位置
+看使用 depth condition 的 SDS loss 是否可行
+
+簡單場景 
+- fix radius [2]
+- 固定 fov 60
+- 固定一個 相機視角
+- SDS + depth loss
+- opacity loss
+- 固定 黑色背景
+- 固定 ratio 後的 shading & albedo
+- 只計算SDS前景loss
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/simple.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera \
+--workspace trial/trial_simple_onecam_fgloss_sds
+
+
+想要嘗試的
+
+1. 中間給定一個長方體, 利用sds 生成一棵樹, 測試 SDS 的可行性

@@ -1,0 +1,137 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "train_complex",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "args": [
+                "-O",
+                "--text",
+                "a landscape,hdr,masterpiece,64k",
+                "--latent_iter_ratio",
+                "0.1",
+                "--radius_range",
+                "1.5",
+                "2.5",
+                "--theta_range",
+                "60",
+                "75",
+                "--lambda_depth",
+                "1",
+                "--fovy_range",
+                "20",
+                "20",
+                "--heightmap_path",
+                "BEV/heightmap.png",
+                "--iters",
+                "10000",
+                "--workspace",
+                "trial/trial_complex_fixedFOV_depthonly",
+                
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "train_simple",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "args": [
+                "-O",
+                "--text",
+                "a landscape,hdr,masterpiece,64k",
+                "--latent_iter_ratio",
+                "0.1",
+                "--radius_range",
+                "1.5",
+                "2.5",
+                "--theta_range",
+                "60",
+                "75",
+                "--lambda_depth",
+                "1",
+                "--fovy_range",
+                "20",
+                "20",
+                "--heightmap_path",
+                "BEV/simple.png",
+                "--iters",
+                "10000",
+                "--H",
+                "64",
+                "--W",
+                "64",
+                "--test_interval",
+                "20",
+                "--dataset_size_test",
+                "96",
+                "--workspace",
+                "trial/trial_test",
+                
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "terrain_test",
+            "type": "python",
+            "request": "launch",
+            "program": "terrain.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "sd_test",
+            "type": "python",
+            "request": "launch",
+            "program": "guidance/sd_utils.py",
+            "args": [
+                "--prompt",
+                "a tree",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "vanilla_test",
+            "type": "python",
+            "request": "launch",
+            "program": "examples/train_mlp_nerf.py",
+            "args": [
+                "--scene",
+                "lego",
+                "--data_root",
+                "data/nerf_synthetic",
+                "--radius_range",
+                "2",
+                "3",
+                "--theta_range",
+                "30",
+                "90",
+                "--fovy_range",
+                "20",
+                "20",
+                "--workspace",
+                "fixed_fov_randcam",
+                "--model_path", 
+                "examples/trial/fixed_fov_randcam/ckpt/mlp_nerf_2500"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "dataloader_test",
+            "type": "python",
+            "request": "launch",
+            "program": "examples/datasets/nerf_synthetic.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

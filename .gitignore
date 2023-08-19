@@ -1,0 +1,11 @@
+__MACOSX/
+
+cub-1.10.0/
+__pycache__/
+
+data/
+
+trial/
+test/
+
+*.mp4
