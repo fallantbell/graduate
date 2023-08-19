@@ -982,7 +982,7 @@ class Trainer(object):
             image_gt = (image_gt * 255).astype(np.uint8)
 
             grad_map = rearrange(grad_map, "H W -> 1 H W")
-            grad_map = grad_map.detach().cpu().numpy()
+            grad_map = grad_map.astype(np.uint8)
             grad_map = (grad_map - grad_map.min()) / (grad_map.max() - grad_map.min() + 1e6)
             grad_map = (grad_map * 255).astype(np.uint8)
 
