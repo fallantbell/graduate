@@ -180,8 +180,6 @@ class StableDiffusion(nn.Module):
 
         #* 獲取深度channel
         disparity_map, non_zero_mask = self.get_depth_mask(depth_gt, text_embeddings.dtype)
-        self.non_zero_mask = non_zero_mask
-
 
         # timestep ~ U(0.02, 0.98) to avoid very high/low noise level
         #* 從 20~980 抽取一個 t

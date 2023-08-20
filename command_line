@@ -562,6 +562,19 @@ python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 
 " ===================================================================================== "
 
+複雜場景 mse
+
+CUDA_VISIBLE_DEVICES=5 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_complex_mse
+
+" ===================================================================================== "
+
 目前使用SDS train 不起來
 先嘗試看看固定一個相機位置
 看使用 depth condition 的 SDS loss 是否可行
@@ -586,7 +599,92 @@ python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 --one_camera \
 --workspace trial/trial_simple_onecam_fgloss_sds
 
+複雜場景
 
-想要嘗試的
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera \
+--workspace trial/trial_complex_onecam_fgloss_sds
 
-1. 中間給定一個長方體, 利用sds 生成一棵樹, 測試 SDS 的可行性
+複雜場景
+
+- 不計算depth loss
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 0 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera \
+--workspace trial/trial_complex_onecam_fgloss_nodepth_sds
+
+複雜場景
+
+- guidance 100 -> 7.5
+
+CUDA_VISIBLE_DEVICES=5 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera --guidance_scale 7.5 \
+--workspace trial/trial_complex_onecam_fgloss_lowguide_sds
+
+
+複雜場景
+
+考慮到已經有geometry, 或許可以只取比較小的step 來補充細節, 而不要影響整體形狀
+
+- t_range [0.2,0.98] -> [0.1,0.6]
+
+CUDA_VISIBLE_DEVICES=5 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera --t_range 0.1 0.6 \
+--workspace trial/trial_complex_onecam_fgloss_smallstep_sds
+
+複雜場景
+
+加強depth loss 的 權重, 讓nerf 優先render 出好的形狀後在補細節
+
+- t_range [0.2,0.98] -> [0.1,0.8]
+- lambda_depth 1 -> 10
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 10 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera --t_range 0.1 0.8 \
+--workspace trial/trial_complex_onecam_fgloss_bigdepthloss_sds
+
+複雜場景
+
+看在one cam 下只訓練depth 可不可以
+
+- depth only
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 10 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--one_camera \
+--workspace trial/trial_complex_onecam_depthonly

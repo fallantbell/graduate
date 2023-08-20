@@ -498,9 +498,6 @@ class Trainer(object):
 
             loss = loss + depth_loss*self.opt.lambda_depth
 
-            # image_gt = self.guidance['SD'].init_image
-            # image_gt = np.array(image_gt)
-            # image_gt = rearrange(image_gt,"H W C -> C H W")
             pred_rgb3 = pred_rgb[:,:3,...]
             image_gt_tensor = torch.tensor(image_gt).to(torch.float32).to(self.device)
             image_gt_tensor = rearrange(image_gt_tensor,'C H W -> 1 C H W')
@@ -511,28 +508,12 @@ class Trainer(object):
 
             # loss = loss + rgb_loss
 
-            # non_zero_mask = (depth_gt != 0)
-            non_zero_mask = self.guidance['SD'].non_zero_mask
+            non_zero_mask = (depth_gt != 0)
             
             if self.use_tensorboardX:
-                # self.writer.add_scalar("train/loss_noise_mse", self.guidance['SD'].noise_mse, self.global_step)
+                self.writer.add_scalar("train/loss_noise_mse", self.guidance['SD'].noise_mse, self.global_step)
                 self.writer.add_scalar("train/loss_depth_mse", depth_loss, self.global_step)
-                self.writer.add_scalar("train/loss_rgb_mse", rgb_loss, self.global_step)
-        
-        if self.opt.without_SDS:
-            pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()
-            init_img = self.guidance['SD'].init_image
-            transform = transforms.Compose([
-                transforms.Resize((64, 64)),
-                transforms.ToTensor()
-            ])
-            init_img = transform(init_img)
-            init_img = torch.unsqueeze(init_img, 0).to(self.device)
-            mse_loss = nn.MSELoss()
-            loss = mse_loss(init_img, pred_rgb)
-
-            if self.use_tensorboardX:
-                self.writer.add_scalar("train/loss_mse", loss, self.global_step)
+                # self.writer.add_scalar("train/loss_rgb_mse", rgb_loss, self.global_step)
 
 
         # regularizations
