@@ -485,13 +485,14 @@ class Trainer(object):
             depth_gt = data['depth_gt']
             image_gt = data['image_gt']
 
+            depth_gt_tensor = torch.tensor(depth_gt).to(torch.float32).to(self.device)
+
             #* 給定text prompt 進行 stable diffusion 的guidance 
             #* 計算sds loss
             #! 跳到 sd_utils.py
             loss = loss + self.guidance['SD'].train_step(text_z, pred_rgb,depth_gt, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance,
                                                             save_guidance_path=save_guidance_path,just_depth = just_depth)
 
-            depth_gt_tensor = torch.tensor(depth_gt).to(torch.float32).to(self.device)
             depth_gt_tensor = rearrange(depth_gt_tensor,'H W -> 1 1 H W')
             mse_loss = nn.MSELoss()
             depth_loss = mse_loss(depth_gt_tensor,pred_depth)

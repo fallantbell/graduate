@@ -682,9 +682,122 @@ python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 CUDA_VISIBLE_DEVICES=4 \
 python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 --latent_iter_ratio 0.2 --radius_range 2 3 \
---theta_range 30 105 --iters 20000 --lambda_depth 10 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
 --fovy_range 60 60 --default_fovy 60 \
 --heightmap_path BEV/heightmap.png \
 --test_interval 20 --lambda_opacity 0.001 \
 --one_camera \
 --workspace trial/trial_complex_onecam_depthonly
+
+
+前面one cam depth only 深度有點怪, 看看是不是one cam的問題
+- depth only
+- 多視角
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_complex_depthonly
+
+=> 好像是, 可能one cam 訓練有極限?
+
+" ===================================================================================== "
+
+暫時放棄one cam
+
+複雜場景 sds
+- random radius [2,3]
+- 固定 fov 60
+- random 相機視角
+- SDS + depth loss
+- opacity loss
+- 固定 黑色背景
+- 原本的 shading
+- 只計算SDS前景loss
+- t_range [0.1,0.7]
+- lambda_depth 2
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 2 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--t_range 0.1 0.7 \
+--workspace trial/trial_complex_sds
+
+- 正常 t_range
+- 簡短的text prompt
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 2 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_complex_sds
+
+- 小範圍的theta
+
+CUDA_VISIBLE_DEVICES=5 \
+python main.py --text "a landscape" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 60 80 --iters 20000 --lambda_depth 2 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_complex_lowtheta_sds
+
+同上, 但是改變depth GT 位置
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 60 80 --iters 20000 --lambda_depth 2 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--workspace trial/trial_complex_lowtheta_changedepth_sds
+
+#  真的是 depth GT 出錯, 他在傳入SD function 後被改到了 #
+
+" ===================================================================================== "
+
+重新實驗
+
+加強depth loss 權重
+
+複雜場景
+
+加強depth loss 的 權重, 讓nerf 優先render 出好的形狀後在補細節
+
+- t_range [0.2,0.98] -> [0.1,0.8]
+- lambda_depth 1 -> 10
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "landscape" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 10 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--t_range 0.1 0.8 \
+--workspace trial/trial_complex_bigdepthloss_sds
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "landscape" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 10 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--t_range 0.1 0.6 \
+--workspace trial/trial_complex_bigdepthloss_sds
+
+
