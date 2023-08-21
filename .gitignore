@@ -9,5 +9,6 @@ sd_sample/
 
 trial/
 test/
+command_line.txt
 
 *.mp4

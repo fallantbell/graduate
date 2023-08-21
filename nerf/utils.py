@@ -382,8 +382,8 @@ class Trainer(object):
 
                 #! 固定ambient 為1，取消random對訓練的影響
                 #! 固定 shading 為 lambertian，取消對mse 造成的影響
-                shading = 'lambertian'
-                ambient_ratio = 1.0
+                # shading = 'lambertian'
+                # ambient_ratio = 1.0
 
             as_latent = False
 
@@ -441,7 +441,7 @@ class Trainer(object):
 
         loss = 0
 
-        if 'SD' in self.guidance and self.opt.without_SDS==False:
+        if 'SD' in self.guidance:
             # interpolate text_z
             #* 圓心角
             azimuth = data['azimuth'] # [-180, 180]
@@ -485,13 +485,20 @@ class Trainer(object):
             depth_gt = data['depth_gt']
             image_gt = data['image_gt']
 
+            depth_gt_tensor = torch.tensor(depth_gt).to(torch.float32).to(self.device)
+
             #* 給定text prompt 進行 stable diffusion 的guidance 
             #* 計算sds loss
             #! 跳到 sd_utils.py
-            loss = loss + self.guidance['SD'].train_step(text_z, pred_rgb,depth_gt, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance,
+            sds_loss = self.guidance['SD'].train_step(text_z, pred_rgb,depth_gt, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance,
                                                             save_guidance_path=save_guidance_path,just_depth = just_depth)
+            lambda_sds = 1
+            if self.opt.progressive_SDS:
+                lambda_sds = (self.global_step//100)*1e-5
+                self.writer.add_scalar("SDS_loss_weight", lambda_sds, self.global_step)
+            
+            loss = loss + lambda_sds*sds_loss
 
-            depth_gt_tensor = torch.tensor(depth_gt).to(torch.float32).to(self.device)
             depth_gt_tensor = rearrange(depth_gt_tensor,'H W -> 1 1 H W')
             mse_loss = nn.MSELoss()
             depth_loss = mse_loss(depth_gt_tensor,pred_depth)
@@ -514,7 +521,6 @@ class Trainer(object):
                 self.writer.add_scalar("train/loss_noise_mse", self.guidance['SD'].noise_mse, self.global_step)
                 self.writer.add_scalar("train/loss_depth_mse", depth_loss, self.global_step)
                 # self.writer.add_scalar("train/loss_rgb_mse", rgb_loss, self.global_step)
-
 
         # regularizations
         #* 加上幾個奇怪的loss
