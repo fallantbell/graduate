@@ -255,6 +255,11 @@ python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 
 - 正常 t_range
 - 簡短的text prompt
+" ===================================================================================== "
+
+standard
+
+完全正常的版本
 
 CUDA_VISIBLE_DEVICES=4 \
 python main.py --text "a landscape" -O \
@@ -266,6 +271,11 @@ python main.py --text "a landscape" -O \
 --workspace trial/trial_complex_sds
 
 - 小範圍的theta
+" ===================================================================================== "
+
+base on standard
+
++ one camera
 
 CUDA_VISIBLE_DEVICES=5 \
 python main.py --text "a landscape" -O \
@@ -292,6 +302,13 @@ python main.py --text "a landscape" -O \
 " ===================================================================================== "
 
 重新實驗
+base on standard
+
++ progressive sds loss
+
+一開始 sds loss weight 設很小
+為了是讓nerf 可以盡量保持原有形狀
+之後逐步增大sds loss weight, 將 texture 增加上去
 
 加強depth loss 權重
 
@@ -316,6 +333,42 @@ CUDA_VISIBLE_DEVICES=4 \
 python main.py --text "landscape" -O \
 --latent_iter_ratio 0.2 --radius_range 2 3 \
 --theta_range 30 105 --iters 20000 --lambda_depth 10 \
+--progressive_SDS \
+--workspace trial/trial_complex_progressive_sds
+
+" ===================================================================================== "
+
+base on standard
+
++ texture net
+
+增加一個 texture mlp, 希望網路在更新時可以專注更新這個texture net
+而不要影響到 sigma net
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 10000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--texture_net \
+--workspace trial/trial_complex_texturenet_sds
+
+
+" ===================================================================================== "
+
+base on standard
+
++ small range
+
+希望使用比較小的 SD t 訓練比較不會影響到geometry
+而是能專注在生成細節上
+
+CUDA_VISIBLE_DEVICES=8 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
 --fovy_range 60 60 --default_fovy 60 \
 --heightmap_path BEV/heightmap.png \
 --test_interval 20 --lambda_opacity 0.001 \
@@ -323,3 +376,42 @@ python main.py --text "landscape" -O \
 --workspace trial/trial_complex_bigdepthloss_sds
 
 
+--workspace trial/trial_complex_smallrange_sds
+
+" ===================================================================================== "
+
+base on standard
+
++ texture net
++ progressive_SDS
+
+CUDA_VISIBLE_DEVICES=6 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0.2 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--texture_net --progressive_SDS \
+--workspace trial/trial_complex_texturenet_progressive_sds
+
+" ===================================================================================== "
+
+base on standard
+
++ texture net
++ progressive_SDS
++ 0 iter ratio
+
+因為原本就有geometry prior,
+應該就不需要像原本的做法先訓練形狀
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "a landscape,hdr,masterpiece,64k" -O \
+--latent_iter_ratio 0 --radius_range 2 3 \
+--theta_range 30 105 --iters 20000 --lambda_depth 1 \
+--fovy_range 60 60 --default_fovy 60 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--texture_net --progressive_SDS \
+--workspace trial/trial_complex_texturenet_progressive_0iter_sds

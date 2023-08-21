@@ -492,7 +492,7 @@ class Trainer(object):
             #! 跳到 sd_utils.py
             sds_loss = self.guidance['SD'].train_step(text_z, pred_rgb,depth_gt, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance,
                                                             save_guidance_path=save_guidance_path,just_depth = just_depth)
-            lambda_sds = 1
+            lambda_sds = 5e-4
             if self.opt.progressive_SDS:
                 lambda_sds = (self.global_step//100)*1e-5
                 self.writer.add_scalar("SDS_loss_weight", lambda_sds, self.global_step)

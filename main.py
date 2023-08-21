@@ -158,6 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--progressive_SDS', action='store_true')
     parser.add_argument('--heightmap_path', type=str,default='BEV/simple.png')
     parser.add_argument('--fixed_camera', action='store_true')
+    parser.add_argument('--texture_net', action='store_true')
 
 
     opt = parser.parse_args()
