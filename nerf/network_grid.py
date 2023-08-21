@@ -68,6 +68,11 @@ class NeRFNetwork(NeRFRenderer):
         #* 輸出應該就是 rgb + sigma
         self.sigma_net = MLP(self.in_dim, 4, hidden_dim, num_layers, bias=True)
 
+        #! 增加一個 texture mlp, 希望網路在更新時可以專注更新這個texture net
+        #! 而不要影響到 sigma net
+        if opt.texture_net:
+            self.texture_net = MLP(3, 3, 32, 2, bias=True)
+
         self.density_activation = trunc_exp if self.opt.density_activation == 'exp' else biased_softplus
 
         #* background network
@@ -96,7 +101,12 @@ class NeRFNetwork(NeRFRenderer):
         h = self.sigma_net(enc)
 
         sigma = self.density_activation(h[..., 0] + self.density_blob(x))
-        albedo = torch.sigmoid(h[..., 1:])
+
+        if self.opt.texture_net:
+            texture = self.texture_net(h[..., 1:])
+            albedo = torch.sigmoid(texture)
+        else:        
+            albedo = torch.sigmoid(h[..., 1:])
 
         return sigma, albedo
     
