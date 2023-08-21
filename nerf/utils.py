@@ -399,6 +399,15 @@ class Trainer(object):
             else:
                 bg_color = torch.rand(3).to(self.device) # single color random bg
 
+        #! 前期不看sds
+        if self.global_step < (self.opt.latent_iter_ratio * self.opt.iters):
+            just_depth = True
+
+        shading = 'lambertian'
+        ambient_ratio = 1.0
+        as_latent = False
+        binarize = False
+
         bg_color = 0 #*! 背景都先設定黑色來訓練
 
         '''
@@ -492,10 +501,15 @@ class Trainer(object):
             #! 跳到 sd_utils.py
             sds_loss = self.guidance['SD'].train_step(text_z, pred_rgb,depth_gt, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance,
                                                             save_guidance_path=save_guidance_path,just_depth = just_depth)
-            lambda_sds = 5e-4
+            
+            lambda_sds = self.opt.lambda_sds
+
             if self.opt.progressive_SDS:
-                lambda_sds = (self.global_step//100)*1e-5
+                lambda_sds = (((self.global_step//100)*100)/self.iters)*1e-2
                 self.writer.add_scalar("SDS_loss_weight", lambda_sds, self.global_step)
+            else:
+                if just_depth:
+                    lambda_sds = 0
             
             loss = loss + lambda_sds*sds_loss
 

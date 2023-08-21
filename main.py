@@ -159,6 +159,7 @@ if __name__ == '__main__':
     parser.add_argument('--heightmap_path', type=str,default='BEV/simple.png')
     parser.add_argument('--fixed_camera', action='store_true')
     parser.add_argument('--texture_net', action='store_true')
+    parser.add_argument('--lambda_sds', type=float, default=5e-4, help="loss scale for alpha entropy")
 
 
     opt = parser.parse_args()
