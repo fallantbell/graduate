@@ -155,7 +155,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_size_test', type=int, default=100, help="# of frames to render in the turntable video at test time")
 
     parser.add_argument('--one_camera', action='store_true')
-    parser.add_argument('--without_SDS', action='store_true')
+    parser.add_argument('--progressive_SDS', action='store_true')
     parser.add_argument('--heightmap_path', type=str,default='BEV/simple.png')
     parser.add_argument('--fixed_camera', action='store_true')
 

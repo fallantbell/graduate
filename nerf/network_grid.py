@@ -157,10 +157,6 @@ class NeRFNetwork(NeRFRenderer):
             else: #* 'lambertian' 正常的顏色
                 color = albedo * lambertian.unsqueeze(-1)
         
-        #! 從頭到尾只用albedo，可能會學不到幾何信息
-        # if self.opt.for_test:
-        #     color = albedo
-        
         #* 返回點的 密度, 顏色, 法向量
         return sigma, color, normal
 
