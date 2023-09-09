@@ -205,6 +205,11 @@ class NeRFDataset:
         self.near = self.opt.min_near #* 最近從距離相機多遠開始採樣
         self.far = 1000 #* infinite 最遠採樣到多遠
 
+        if self.training:
+            self.fov = opt.default_fovy
+        else:
+            self.fov = 60
+
         #!
         self.terrain = Terrain(opt)
 
@@ -302,7 +307,7 @@ class NeRFDataset:
 
         #* pytorch3D 好像座標軸不一樣，所以R T 要重算
         R2, T2 = look_at_view_transform(dist=radius, elev=tilt, azim=phis, at=((target[0],target[1],target[2]),))
-        camera = FoVPerspectiveCameras(R=R2, T=T2, device='cuda')
+        camera = FoVPerspectiveCameras(R=R2, T=T2, fov=self.fov, device='cuda')
 
         # 進行渲染
         image, depth, mask, _, _ = self.terrain.render_from_camera(camera, self.H, self.W)
@@ -376,9 +381,8 @@ class NeRFDataset:
             #! 取得實際深度圖
             depth_np,image_np = self.get_depth(thetas,phis,radius,target = rand_target)
 
-            #* random focal
-            fov = random.random() * (self.opt.fovy_range[1] - self.opt.fovy_range[0]) + self.opt.fovy_range[0]
-        
+            # fixed focal
+            # fov = self.opt.default_fovy
 
         else:
             # circle pose
@@ -399,10 +403,12 @@ class NeRFDataset:
             )
 
             # fixed focal
-            fov = self.opt.default_fovy
+            # fov = self.opt.default_fovy
                  
             #! 取得實際深度圖
             depth_np,image_np = self.get_depth(thetas,phis,radius)
+
+        fov = self.fov
 
         #* 根據fov 計算相機焦距 focal
         focal = self.H / (2 * np.tan(np.deg2rad(fov) / 2))

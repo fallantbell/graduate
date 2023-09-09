@@ -382,8 +382,8 @@ class Trainer(object):
 
                 #! 固定ambient 為1，取消random對訓練的影響
                 #! 固定 shading 為 lambertian，取消對mse 造成的影響
-                shading = 'lambertian'
-                ambient_ratio = 1.0
+                # shading = 'lambertian'
+                # ambient_ratio = 1.0
 
             as_latent = False
 
@@ -404,7 +404,8 @@ class Trainer(object):
             just_depth = True
 
         shading = 'lambertian'
-        ambient_ratio = 1.0
+        ambient_ratio = 0.1 + 0.9 * random.random()
+        # ambient_ratio = 1
         as_latent = False
         binarize = False
 
@@ -505,7 +506,7 @@ class Trainer(object):
             lambda_sds = self.opt.lambda_sds
 
             if self.opt.progressive_SDS:
-                lambda_sds = (((self.global_step//100)*100)/self.iters)*1e-2
+                lambda_sds = (((self.global_step//100)*100)/self.opt.iters)*2e-3
                 self.writer.add_scalar("SDS_loss_weight", lambda_sds, self.global_step)
             else:
                 if just_depth:

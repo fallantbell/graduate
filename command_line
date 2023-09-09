@@ -490,8 +490,8 @@ python main.py --text "a landscape,hdr,masterpiece,64k" -O \
 
 " ===================================================================================== "
 
-CUDA_VISIBLE_DEVICES=2 \
-python main.py --text "rocky,desolate,desert" -O \
+CUDA_VISIBLE_DEVICES=3 \
+python main.py --text "rocky,cliff,weeds,sunset" -O \
 --latent_iter_ratio 0.15 --radius_range 2 3 \
 --theta_range 30 105 --iters 10000 --lambda_depth 1 \
 --fovy_range 60 60 --default_fovy 60 \
@@ -500,14 +500,27 @@ python main.py --text "rocky,desolate,desert" -O \
 --lambda_sds 3e-3 \
 --workspace trial/trial_complex_desert3e3_sds
 
-+ random abient
+" ===================================================================================== "
 
-CUDA_VISIBLE_DEVICES=3 \
-python main.py --text "rocky,desolate,desert" -O \
+試試fov20 訓練的效果
+
+CUDA_VISIBLE_DEVICES=7 \
+python main.py --text "nature scene, rocks,hill,grass,trees,river" -O \
 --latent_iter_ratio 0.15 --radius_range 2 3 \
---theta_range 30 105 --iters 10000 --lambda_depth 1 \
---fovy_range 60 60 --default_fovy 60 \
+--theta_range 30 90 --iters 20000 --lambda_depth 1 \
+--default_fovy 20 \
 --heightmap_path BEV/heightmap.png \
 --test_interval 20 --lambda_opacity 0.001 \
 --lambda_sds 3e-3 \
---workspace trial/trial_complex_desert3e3_randabient_sds
+--workspace trial/trial_complex_nature3e3_fov20_sds
+
+CUDA_VISIBLE_DEVICES=4 \
+python main.py --text "nature scene, Frigid, Snowy,tree, rock,Bright sunlight,A dreamlike scene,Crystal clear,Dazzling glare" -O \
+--latent_iter_ratio 0.15 --radius_range 2 3 \
+--theta_range 30 90 --iters 20000 --lambda_depth 1 \
+--default_fovy 20 \
+--heightmap_path BEV/heightmap.png \
+--test_interval 20 --lambda_opacity 0.001 \
+--lambda_sds 3e-3 \
+--workspace trial/trial_complex_snow3e3_fov20_sds
+

@@ -243,7 +243,7 @@ if __name__ == '__main__':
         
         #* 開始訓練
         trainer.train(train_loader, valid_loader, test_loader, max_epoch)
-        # trainer.test(test_loader,name="radius_25")
+        # trainer.test(test_loader,name="white")
 
         if opt.save_mesh:
             trainer.save_mesh()

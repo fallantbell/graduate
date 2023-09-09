@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
         R2, T2 = look_at_view_transform(dist=2.2, elev=0+tilt, azim=phis)
 
-        camera = FoVPerspectiveCameras(R=R2, T=T2, device='cuda')
+        camera = FoVPerspectiveCameras(R=R2, T=T2, fov=20 , device='cuda')
 
 
         # 進行渲染
